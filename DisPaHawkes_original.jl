@@ -1,4 +1,4 @@
-module DisPaHawkes
+module DisPaHawkes_original
 
 using Distributions
 using LogExpFunctions

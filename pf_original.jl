@@ -34,7 +34,7 @@ obsvls = cumsum(aggregate_data(simevents, windows))
 # print(DisPaHawkes.unif_ord_samp([0, 10], 10))
 
 
-ots, ovs = ntvppdatapreproc(obstms, obsvls) # Cleaning the data
+ots, ovs = DisPaHawkes_original.ntvppdatapreproc(obstms, obsvls) # Cleaning the data
 
 
 
@@ -42,14 +42,14 @@ ots, ovs = ntvppdatapreproc(obstms, obsvls) # Cleaning the data
 
 # Likelihood estimate for the true parameters
 param = [bg, eta, lambda]
-true_loglik = ntvxphpsmcll(ots, ovs, param, J = 100)
+true_loglik = DisPaHawkes_original.ntvxphpsmcll(ots, ovs, param, J = 100)
 # print(true_loglik, "\n")
 
 # Likelihood for an incorrect guess
 pa_init = param .+ [0.5, -0.1, 0.5]
 N = 5000
 
-res = PaFiHawkes.MHMCMCdiscExpHawkes((otms=ots, ovls=ovs), pa_init,
+res = DisPaHawkes_original.MHMCMCdiscExpHawkes((otms=ots, ovls=ovs), pa_init,
                             verb = true, N = N,
                             J = 128, delta = 0.05)
 
@@ -58,4 +58,6 @@ res = PaFiHawkes.MHMCMCdiscExpHawkes((otms=ots, ovls=ovs), pa_init,
 # eta_est = [res[1][i][2] for i in 1:N]
 # lambda_est = [res[1][i][3] for i in 1:N]
 
-plot(1:N, [res[1][1:3:3*N-2] res[1][2:3:3*N-1] res[1][3:3:3*N]], label = ["Background" "Eta" "Lambda"])
+plot_orig = plot(1:N, [res[1][1:3:3*N-2] res[1][2:3:3*N-1] res[1][3:3:3*N]], label = ["Background" "Eta" "Lambda"])
+
+savefig(plot_orig, raw"C:\\Users\\jlamb\\OneDrive\\PhD\\Code Projects\\PF_Hawkes\\Figures\\plot_orig.pdf")
