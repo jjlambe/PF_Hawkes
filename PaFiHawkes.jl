@@ -1,4 +1,4 @@
-module DisPaHawkes
+module PaFiHawkes
 
 using Distributions
 using LogExpFunctions
@@ -35,7 +35,6 @@ function unif_ord_samp(t_int, n)
     for k in n-1:-1:1
         U[k] = U[k+1]*(V[k]^(1/k))
     end
-    # U = (t_int[2] - t_int[1]).*U .+ t_int[1]
     return (t_int[2] - t_int[1])*U .+ t_int[1]
 end
 
@@ -78,9 +77,9 @@ function ntvxphpsmcll(ot,ov,pa;npb=1,basint=intCon,basInt=IntCon,J=100,conf=0.95
     cumBk1 = basInt(ot[idx+1],pa=pa[1:npb])
     Threads.@threads for j in 1:J
         lwts[j] = cumBk0 - cumBk1
-        etms = ot[idx] .+  
-            cumsum(rand(Exponential(1/lmd),dN[idx]))  # Simulating the poisson process starting at t(i-1).
-        # etms = unif_ord_samp(ot[idx:idx+1], dN[idx])
+        # etms = ot[idx] .+  
+        #     cumsum(rand(Exponential(1/lmd),dN[idx]))  # Simulating the poisson process starting at t(i-1).
+        etms = unif_ord_samp(ot[idx:idx+1], dN[idx])
         ex = ptcls[j]
         for k in 1:dN[idx]
             ex *= exp(-(k==1 ? etms[1]-ot[idx] :
@@ -89,8 +88,8 @@ function ntvxphpsmcll(ot,ov,pa;npb=1,basint=intCon,basInt=IntCon,J=100,conf=0.95
             ex += eta/beta
             lwts[j] -= eta*(1-exp(-(ot[idx+1]-etms[k])/beta))
         end
-        lwts[j] -= dN[idx]*log(lmd)-lmd*(etms[dN[idx]]-ot[idx]) # Here we are subtracting the denominator of the weights (log)
-        # lwts[j] -= sum(log.(2:dN[idx])) - dN[idx]*log(ot[idx+1] - ot[idx]) # Check whether indexing is correct on second term.
+        # lwts[j] -= dN[idx]*log(lmd)-lmd*(etms[dN[idx]]-ot[idx]) # Here we are subtracting the denominator of the weights (log)
+        lwts[j] -= sum(log.(2:dN[idx])) - dN[idx]*log(ot[idx+1] - ot[idx]) # Check whether indexing is correct on second term.
         ex *= exp( -(ot[idx+1]-etms[dN[idx]])/beta)
         ptcls[j] = ex
         if etms[dN[idx]] > ot[idx+1] 
