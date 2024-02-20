@@ -1,4 +1,7 @@
-using Random, Distributions, HawkesProcesses, Plots, DisPaHawkes, BenchmarkTools
+using Random, Distributions, HawkesProcesses, Plots
+# include("HawkesUtils.jl")
+include("PaFiHawkes.jl")
+import .PaFiHawkes
 
 Random.seed!(1234)
 bg = 1
@@ -39,24 +42,20 @@ ots, ovs = ntvppdatapreproc(obstms, obsvls) # Cleaning the data
 
 # Likelihood estimate for the true parameters
 param = [bg, eta, lambda]
-true_loglik = @btime ntvxphpsmcll(ots, ovs, param, J = 100)
+true_loglik = ntvxphpsmcll(ots, ovs, param, J = 100)
 # print(true_loglik, "\n")
 
 # Likelihood for an incorrect guess
-# param_wrong = param .+ [-0.5, 0.1, 0.5]
-# print(ntvxphpsmcll(ots, ovs, param_wrong, J = 100))
-# The log-likelihood has dropped with an input of incorrect parameters
+pa_init = param .+ [0.5, -0.1, 0.5]
+N = 5000
 
-# res = MHMCMCdiscExpHawkes((otms=ots, ovls=ovs), param,
-#                             verb = true, N = 1000,
-#                             J = 128, delta = 0.05)
+res = PaFiHawkes.MHMCMCdiscExpHawkes((otms=ots, ovls=ovs), pa_init,
+                            verb = true, N = N,
+                            J = 128, delta = 0.05)
 
 
-# bg_vals = 4.9:0.01:5.1
-# loglik_vals = Vector{Float64}(undef, length(bg_vals))
-# for i in eachindex(bg_vals)
-#     loglik_vals[i] = ntvxphpsmcll(ots, ovs, [bg_vals[i], eta, lambda], J = 100)
-# end
+# bg_est = [res[1][i][1] for i in 1:N]
+# eta_est = [res[1][i][2] for i in 1:N]
+# lambda_est = [res[1][i][3] for i in 1:N]
 
-# plot(bg_vals, loglik_vals)
-# ntvxphpsmcll(ots, ovs, param, J = 100)
+plot(1:N, [res[1][1:3:3*N-2] res[1][2:3:3*N-1] res[1][3:3:3*N]], label = ["Background" "Eta" "Lambda"])
