@@ -76,10 +76,12 @@ function ntvxphpsmcll(ot,ov,pa;npb=1,basint=intCon,basInt=IntCon,J=100,conf=0.95
 
         # This loop calculates the log of the numerator of the weights.
         ex = ptcls[j] # ex is a placeholder for the values of the particles.
+        
         for k in 1:dN[idx]
             ex *= exp(-(k==1 ? etms[1]-ot[idx] :
                 etms[k]-etms[k-1] )/beta) # Does this not always just return 0 for k = 1 because ex = 0?
             lwts[j] += log(basint(etms[k],pa=pa[1:npb])+ex)
+            # print(log(basint(etms[k],pa=pa[1:npb]) + ex) == log(pa[1] + ex))
             ex += eta/beta
             lwts[j] -= eta*(1-exp(-(ot[idx+1]-etms[k])/beta))
         end
@@ -113,20 +115,21 @@ function ntvxphpsmcll(ot,ov,pa;npb=1,basint=intCon,basInt=IntCon,J=100,conf=0.95
                 # etms = ot[i] .+
                 #     cumsum(rand(Exponential(1/lmd),dN[i])) 
                 etms = OrdUnifExpSamp(ot[i:i+1], dN[i]) # Sampling from ordered uniform.
-                lwts[j] = -cumBk1 + cumBk0
-                ex = ptcls[j]
+                lwts[j] = -cumBk1 + cumBk0 # Accumulation of background intensity.
+                ex = ptcls[j] # Establishing value of epsilon for this particle.
                 lwts[j] -= ex*beta*cdf(Exponential(beta),
-                                       ot[i+1]-ot[i]) 
+                                       ot[i+1]-ot[i]) # I think this contributes to the sum with epsilons.
                 for k in 1:dN[i]
+                    # This section recursively computes the log of the product of intensities evaluated at the event times.
                     ex *= exp(-(k==1 ? etms[1]-ot[i] :
-                        etms[k]-etms[k-1])/beta)
-                    lwts[j] += log(basint(etms[k],pa=pa[1:npb])+ex)
-                    ex += eta/beta
-                    lwts[j] -= eta*(1-exp(-(ot[i+1]-etms[k])/beta))
+                        etms[k]-etms[k-1])/beta) # Updating epsilon term to kth event time.
+                    lwts[j] += log(basint(etms[k],pa=pa[1:npb])+ex) # Adding on the log of background intensity plus excitation effect.
+                    ex += eta/beta # Updating epsilon to kth event time '+' for the next round
+                    lwts[j] -= eta*(1 - exp(-(ot[i+1]-etms[k])/beta)) # I think this also contributes to the sum with epsilons.
                 end
                 # lwts[j] -= dN[i]*log(lmd)-lmd*(etms[dN[i]]-ot[i]) 
                 lwts[j] -= sum(log.(2:dN[i])) - dN[i]*log(ot[i+1] - ot[i]) # Check whether indexing is correct on second term.
-                ex *= exp( -(ot[i+1]-etms[dN[i]])/beta)
+                ex *= exp( -(ot[i+1]-etms[dN[i]])/beta) # Updating ex to window between n_i th event and next time window.
                 ptcls[j] = ex
                 if etms[dN[i]] > ot[i+1] 
                     lwts[j] = -Inf 
