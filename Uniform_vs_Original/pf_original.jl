@@ -18,15 +18,29 @@ param = [1, 0.5, 2] # True parameter
 pa_init = param .+ [0.5, -0.1, 0.5] # Initial guess
 N = 5000 # Number of iterations
 
-ll_est_orig = DisPaHawkes_original.ntvxphpsmcll(ots, ovs, pa_init)
+# ll_est_orig = DisPaHawkes_original.ntvxphpsmcll(ots, ovs, pa_init)
 
 
-# @time begin
-#     res = DisPaHawkes_original.MHMCMCdiscExpHawkes((otms=ots, ovls=ovs), pa_init,
-#                             verb = true, N = N,
-#                             J = 128, delta = 0.1)
+@time begin
+    res = DisPaHawkes_original.MHMCMCdiscExpHawkes((otms=ots, ovls=ovs), pa_init,
+                            verb = true, N = N,
+                            J = 128, delta = 0.1)
 
+end
+
+plot_orig = plot(1:N, [res[1][1:3:3*N-2] res[1][2:3:3*N-1] res[1][3:3:3*N]], label = ["Background" "Eta" "Lambda"], title = "Poisson Proposal", xlabel = "Time = 459.7 seconds")
+savefig(plot_orig, raw"C:\\Users\\jlamb\\OneDrive\\PhD\\Code Projects\\PF_Hawkes\\Uniform_vs_Original\\Figures\\plot_orig.pdf")
+
+# n = 100
+# ll_vec = Vector{Float64}(undef, n)
+
+# beta_vec = 1:0.02:3-0.02
+
+# for i in 1:n
+#     print(i, "\n")
+#     ll_vec[i] = DisPaHawkes_original.ntvxphpsmcll(ots, ovs, [1, 0.5, beta_vec[i]], J = 500)
 # end
 
-# plot_orig = plot(1:N, [res[1][1:3:3*N-2] res[1][2:3:3*N-1] res[1][3:3:3*N]], label = ["Background" "Eta" "Lambda"], title = "Poisson Proposal", xlabel = "Time = 459.7 seconds")
-# savefig(plot_orig, raw"C:\\Users\\jlamb\\OneDrive\\PhD\\Code Projects\\PF_Hawkes\\Uniform_vs_Original\\Figures\\plot_orig.pdf")
+# plot_poi_ll = plot(beta_vec, ll_vec, label = "Log Likelihood Est.", xlabel = "Beta Value", title = "Poisson Proposal, J = 500 Particles")
+
+# savefig(plot_poi_ll, raw"C:\\Users\\jlamb\\OneDrive\\PhD\\Code Projects\\PF_Hawkes\\Uniform_vs_Original\\Figures\\plot_poi_ll.pdf")

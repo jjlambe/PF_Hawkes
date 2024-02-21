@@ -64,9 +64,10 @@ function ntvxphpsmcll(ot,ov,pa;npb=1,basint=intCon,basInt=IntCon,J=100,conf=0.95
 
     ## In the first interval with 1 or more events:
     # lmd = quantile(Gamma(dN[idx],1.0),conf)/(ot[idx+1]-ot[idx])
+    # cumBk represents the cumulative value of the background intensity, with 0 and 1 used to denote the start and end of a time interval.
     
     cumBk0 = cumBk1
-    cumBk1 = basInt(ot[idx+1],pa=pa[1:npb]) # Shifting along
+    cumBk1 = basInt(ot[idx+1],pa=pa[1:npb]) # Cumulative background at end of first interval with an observation.
     Threads.@threads for j in 1:J
         lwts[j] = cumBk0 - cumBk1
         # etms = ot[idx] .+  
@@ -97,8 +98,8 @@ function ntvxphpsmcll(ot,ov,pa;npb=1,basint=intCon,basInt=IntCon,J=100,conf=0.95
     ## For the idx+1st to the last interval
     for i in idx+1:n  # i=index of the interval = ot index - 1
         # println(exp.(lwts))
-        smp = sample(1:J,weights(exp.(lwts)),J)
-        ptcls=ptcls[smp] 
+        smp = sample(1:J, weights(exp.(lwts)), J)
+        ptcls = ptcls[smp] 
         cumBk0 = cumBk1
         cumBk1 = basInt(ot[i+1],pa=pa[1:npb])
         if dN[i]==0 

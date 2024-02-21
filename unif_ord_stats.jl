@@ -12,7 +12,7 @@ function OrdUnifRecSamp(t_int, n)
     return (t_int[2] - t_int[1])*U .+ t_int[1]
 end
 
-# @btime unif_ord_samp([10, 20], 1000)
+# @btime OrdUnifRecSamp([10, 20], 1000)
 
 function OrdUnifExpSamp(t_int, n)
     # Sampling n ordered uniform RVs in time window (t_int[1], t_int[2])
@@ -22,7 +22,7 @@ function OrdUnifExpSamp(t_int, n)
     return (t_int[2] - t_int[1])*U[1:n] .+ t_int[1]
 end
 
-# @btime unif_ord_exp([10, 20], 1000)
+# @btime OrdUnifExpSamp([10, 20], 1000)
 
 # On 1000 samples, drawing from the exponential is just over 3 times faster.
 
@@ -30,10 +30,11 @@ end
 # joint_vec = Vector{Float64}(undef, N)
 # @btime rand(JointOrderStatistics(Uniform(0, 100), N), 1)
 
-# @btime unif_ord_exp([0, 100], N) # The uniform with exp draws is 3 times faster than rand() from JointOrderStatistics()
+# @btime OrdUnifExpSamp([0, 100], N) # The uniform with exp draws is 3 times faster than rand() from JointOrderStatistics()
 
+# The OrdUnifExpSamp method is statistically identical to the inbuilt method.
+# res1 = rand(JointOrderStatistics(Uniform(0, 1), 10, [6]), N)
+# print(mean(res1), "\n")
 
-
-# for i in 1:N
-#     joint_vec[i] = rand
-# end
+# res2 = [OrdUnifExpSamp([0, 1], 10)[6] for i in 1:N]
+# print(mean(res2))

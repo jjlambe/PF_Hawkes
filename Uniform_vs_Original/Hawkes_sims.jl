@@ -1,11 +1,11 @@
 using Random, Distributions, CSV, Tables, HawkesProcesses
 
-# Random.seed!(2024)
+Random.seed!(2024)
 bg = 1
 eta = 0.5
-lambda = 4
+beta = 2
 
-kernel(x) = pdf.(Exponential(1/lambda), x)
+kernel(x) = pdf.(Exponential(1/beta), x)
 T = 1000
 simevents = HawkesProcesses.simulate(bg, eta, kernel, T)
 
