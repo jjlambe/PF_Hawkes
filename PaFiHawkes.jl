@@ -6,6 +6,7 @@ using Random
 using SpecialFunctions
 using StatsBase
 include("HawkesUtils.jl"); using .HawkesUtils
+include("unif_ord_stats.jl")
 # Test
 export ntvppdatapreproc
 export ntvxphpsmcll
@@ -28,16 +29,6 @@ end
 # ot = [0:10;]/2; ov=[0;cumsum(rand(Poisson(1),10))]; length(ot)
 # ot,ov = ntvppdatapreproc(ot,ov); length(ot)
 
-function unif_ord_samp(t_int, n)
-    U = Vector{Float64}(undef, n)
-    V = rand(Uniform(0, 1), n)
-    U[n] = V[n]^(1/n)
-    for k in n-1:-1:1
-        U[k] = U[k+1]*(V[k]^(1/k))
-    end
-    return (t_int[2] - t_int[1])*U .+ t_int[1]
-end
-
 ## SMC approximation to the loglikelihood of the exponential kernel
 ## Hawkes process
 ##  - ot: the observation times in ascending order
@@ -52,42 +43,46 @@ end
 function ntvxphpsmcll(ot,ov,pa;npb=1,basint=intCon,basInt=IntCon,J=100,conf=0.95)
     # print("Correct!\n")
     if npb+2 != length(pa) 
-        @warn("length of pa = $(length(pa))!= $(npb) + 2") 
+        @warn("length of pa = $(length(pa))!= $(npb) + 2") # Checking that the number of parameters is correct (3)
     end
-    N=convert(Vector{Int64},ov) # values of the counting process at the obs times
-    dN=diff(N) # num. of events each intervals
-    mdN=maximum(dN)
-    n=length(dN) # num. of intervals (=num. of obs times - 1)
-    eta = pa[npb+1]
-    beta = pa[npb+2]
+    N = convert(Vector{Int64},ov) # values of the counting process at the obs times
+    dN = diff(N) # num. of events each intervals
+    mdN = maximum(dN) # Maximum number of events per window... currently unused.
+    n = length(dN) # num. of intervals (=num. of obs times - 1)
+    eta = pa[npb+1] # Branching ratio
+    beta = pa[npb+2] # Excitation function parameter
 
-    ptcls = fill(0.0,J)
-    lwts = Vector{Float64}(undef,J)
+    ptcls = fill(0.0,J) # Array with all J particle values, initialised at 0
+    lwts = Vector{Float64}(undef,J) # log of weights of particles
 
-    #idx of 1st interval with 1+ events (idx<=2)
-    idx = 1; while dN[idx]==0 idx += 1 end 
-    cumBk0 = basInt(ot[1],pa=pa[1:npb])
+    # This section is establishing the initial log-likelihood value
+    # idx of 1st interval with 1+ events (idx<=2)
+    idx = 1; while dN[idx]==0 idx += 1 end # Finding the first interval with an event in it
+    cumBk0 = basInt(ot[1],pa=pa[1:npb]) # baseInt is the integrated baseline intensity function TntCon (intensity constant times x)
     cumBk1 = basInt(ot[idx],pa=pa[1:npb])
-    ll = -cumBk1+cumBk0
+    ll = -cumBk1 + cumBk0 # Initialising the log-likelihood - probability of seeing no events between the first observation time and the first idx with an event.
 
     ## In the first interval with 1 or more events:
-    lmd = quantile(Gamma(dN[idx],1.0),conf)/(ot[idx+1]-ot[idx])
+    # lmd = quantile(Gamma(dN[idx],1.0),conf)/(ot[idx+1]-ot[idx])
     
     cumBk0 = cumBk1
-    cumBk1 = basInt(ot[idx+1],pa=pa[1:npb])
+    cumBk1 = basInt(ot[idx+1],pa=pa[1:npb]) # Shifting along
     Threads.@threads for j in 1:J
         lwts[j] = cumBk0 - cumBk1
         # etms = ot[idx] .+  
         #     cumsum(rand(Exponential(1/lmd),dN[idx]))  # Simulating the poisson process starting at t(i-1).
-        etms = unif_ord_samp(ot[idx:idx+1], dN[idx])
-        ex = ptcls[j]
+        etms = OrdUnifExpSamp(ot[idx:idx+1], dN[idx]) # Sampling from ordered uniform.
+
+        # This loop calculates the log of the numerator of the weights.
+        ex = ptcls[j] # ex is a placeholder for the values of the particles.
         for k in 1:dN[idx]
             ex *= exp(-(k==1 ? etms[1]-ot[idx] :
-                etms[k]-etms[k-1] )/beta)
+                etms[k]-etms[k-1] )/beta) # Does this not always just return 0 for k = 1 because ex = 0?
             lwts[j] += log(basint(etms[k],pa=pa[1:npb])+ex)
             ex += eta/beta
             lwts[j] -= eta*(1-exp(-(ot[idx+1]-etms[k])/beta))
         end
+
         # lwts[j] -= dN[idx]*log(lmd)-lmd*(etms[dN[idx]]-ot[idx]) # Here we are subtracting the denominator of the weights (log)
         lwts[j] -= sum(log.(2:dN[idx])) - dN[idx]*log(ot[idx+1] - ot[idx]) # Check whether indexing is correct on second term.
         ex *= exp( -(ot[idx+1]-etms[dN[idx]])/beta)
@@ -112,10 +107,11 @@ function ntvxphpsmcll(ot,ov,pa;npb=1,basint=intCon,basInt=IntCon,J=100,conf=0.95
                 (1-exp(-(ot[i+1] - ot[i])/beta))
             ptcls *= exp(-(ot[i+1] - ot[i])/beta)
         else
-            lmd = quantile(Gamma(dN[i],1.0),conf)/(ot[i+1]-ot[i])
+            # lmd = quantile(Gamma(dN[i],1.0),conf)/(ot[i+1]-ot[i])
             Threads.@threads for j in 1:J
-                etms = ot[i] .+
-                    cumsum(rand(Exponential(1/lmd),dN[i]))  
+                # etms = ot[i] .+
+                #     cumsum(rand(Exponential(1/lmd),dN[i])) 
+                etms = OrdUnifExpSamp(ot[i:i+1], dN[i]) # Sampling from ordered uniform.
                 lwts[j] = -cumBk1 + cumBk0
                 ex = ptcls[j]
                 lwts[j] -= ex*beta*cdf(Exponential(beta),
@@ -127,7 +123,8 @@ function ntvxphpsmcll(ot,ov,pa;npb=1,basint=intCon,basInt=IntCon,J=100,conf=0.95
                     ex += eta/beta
                     lwts[j] -= eta*(1-exp(-(ot[i+1]-etms[k])/beta))
                 end
-                lwts[j] -= dN[i]*log(lmd)-lmd*(etms[dN[i]]-ot[i]) 
+                # lwts[j] -= dN[i]*log(lmd)-lmd*(etms[dN[i]]-ot[i]) 
+                lwts[j] -= sum(log.(2:dN[i])) - dN[i]*log(ot[i+1] - ot[i]) # Check whether indexing is correct on second term.
                 ex *= exp( -(ot[i+1]-etms[dN[i]])/beta)
                 ptcls[j] = ex
                 if etms[dN[i]] > ot[i+1] 
