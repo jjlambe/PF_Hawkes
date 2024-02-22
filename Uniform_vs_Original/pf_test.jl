@@ -1,4 +1,4 @@
-using Random, Distributions, HawkesProcesses, Plots, DataFrames, CSV
+using Random, Distributions, HawkesProcesses, Plots, DataFrames, CSV, BenchmarkTools
 # include("HawkesUtils.jl")
 include("..\\PaFiHawkes.jl")
 import .PaFiHawkes
@@ -12,25 +12,20 @@ ots, ovs = PaFiHawkes.ntvppdatapreproc(data[!, 1], data[!, 2]) # Cleaning the da
 # The cleaning process will usually make no changes as the chance of a window with no observations is near 0.
 
 param = [1, 0.5, 2] # True parameter
-pa_init = param .+ [0.5, -0.1, 0] # Initial guess
-N = 5000 # Number of iterations
+pa_init = param .+ [0.5, -0.1, 0.5] # Initial guess
+N = 10000 # Number of iterations
 
-ll_est = PaFiHawkes.ntvxphpsmcll(ots, ovs, pa_init)
+# @btime PaFiHawkes.ntvxphpsmcll(ots, ovs, param) # Runs in 50 ms
 
-# @time begin
-#     res = PaFiHawkes.MHMCMCdiscExpHawkes((otms=ots, ovls=ovs), pa_init,
-#                             verb = true, N = N,
-#                             J = 128, delta = 0.1)
+@time begin
+    res = PaFiHawkes.MHMCMCdiscExpHawkes((otms=ots, ovls=ovs), pa_init,
+                            verb = true, N = N,
+                            J = 128, delta = 0.1)
+end
 
-# end
-
-
-
-
-# plot_unif = plot(1:N, [res[1][1:3:3*N-2] res[1][2:3:3*N-1] res[1][3:3:3*N]], label = ["Background" "Eta" "Lambda"], xlabel = "Time = 397.54 seconds",
-#                 title = "Ordered Uniform Proposal")
-# savefig(plot_unif, raw"C:\\Users\\jlamb\\OneDrive\\PhD\\Code Projects\\PF_Hawkes\\Uniform_vs_Original\\Figures\\plot_unif.pdf")
-
+plot_unif = plot(1:N, [res[1][1:3:3*N-2] res[1][2:3:3*N-1] res[1][3:3:3*N]], label = ["Background" "Eta" "Lambda"], title = "Ordered Uniform Proposal")
+savefig(plot_unif, raw"C:\\Users\\jlamb\\OneDrive\\PhD\\Code Projects\\PF_Hawkes\\Uniform_vs_Original\\Figures\\plot_unif.pdf")
+# 819.55 seconds
 
 ####### Manual Likelihood Estimate Comparison ##########
 # n = 100

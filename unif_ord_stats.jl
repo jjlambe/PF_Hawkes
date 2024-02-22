@@ -18,8 +18,8 @@ function OrdUnifExpSamp(t_int, n)
     # Sampling n ordered uniform RVs in time window (t_int[1], t_int[2])
     # Uses an initial sample of exponentials and re-weights to generate the sample.
     Y = rand(Exponential(1), n + 1)
-    U = cumsum(Y)/sum(Y)
-    return (t_int[2] - t_int[1])*U[1:n] .+ t_int[1]
+    # U = t_int[1] .+ (cumsum(Y)*(t_int[2] - t_int[1]))/sum(Y)
+    return t_int[1] .+ (cumsum(Y)[1:end-1]*(t_int[2] - t_int[1]))/sum(Y)
 end
 
 # @btime OrdUnifExpSamp([10, 20], 1000)

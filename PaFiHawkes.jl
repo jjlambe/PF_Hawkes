@@ -47,6 +47,7 @@ function ntvxphpsmcll(ot,ov,pa;npb=1,basint=intCon,basInt=IntCon,J=100,conf=0.95
     end
     N = convert(Vector{Int64},ov) # values of the counting process at the obs times
     dN = diff(N) # num. of events each intervals
+    dt = diff(convert(Vector{Int64},ot))
     mdN = maximum(dN) # Maximum number of events per window... currently unused.
     n = length(dN) # num. of intervals (=num. of obs times - 1)
     eta = pa[npb+1] # Branching ratio
@@ -72,8 +73,9 @@ function ntvxphpsmcll(ot,ov,pa;npb=1,basint=intCon,basInt=IntCon,J=100,conf=0.95
         lwts[j] = cumBk0 - cumBk1
         # etms = ot[idx] .+  
         #     cumsum(rand(Exponential(1/lmd),dN[idx]))  # Simulating the poisson process starting at t(i-1).
-        etms = OrdUnifExpSamp(ot[idx:idx+1], dN[idx]) # Sampling from ordered uniform.
-
+        # etms = OrdUnifExpSamp(ot[idx:idx+1], dN[idx]) # Sampling from ordered uniform.
+        Y = rand(Exponential(1), dN[idx] + 1)
+        etms = ot[idx] .+ (cumsum(Y)[1:dN[idx]]*(ot[idx + 1] - ot[idx]))/sum(Y)
         # This loop calculates the log of the numerator of the weights.
         ex = ptcls[j] # ex is a placeholder for the values of the particles.
         
@@ -114,11 +116,14 @@ function ntvxphpsmcll(ot,ov,pa;npb=1,basint=intCon,basInt=IntCon,J=100,conf=0.95
             Threads.@threads for j in 1:J
                 # etms = ot[i] .+
                 #     cumsum(rand(Exponential(1/lmd),dN[i])) 
-                etms = OrdUnifExpSamp(ot[i:i+1], dN[i]) # Sampling from ordered uniform.
+                # etms = OrdUnifExpSamp(ot[i:i+1], dN[i]) # Sampling from ordered uniform.
+                Y = rand(Exponential(1), dN[i] + 1)
+                etms = ot[i] .+ (cumsum(Y)[1:dN[i]]*dt[i])/sum(Y) # Sampling from ordered uniform
                 lwts[j] = -cumBk1 + cumBk0 # Accumulation of background intensity.
                 ex = ptcls[j] # Establishing value of epsilon for this particle.
                 lwts[j] -= ex*beta*cdf(Exponential(beta),
                                        ot[i+1]-ot[i]) # I think this contributes to the sum with epsilons.
+        
                 for k in 1:dN[i]
                     # This section recursively computes the log of the product of intensities evaluated at the event times.
                     ex *= exp(-(k==1 ? etms[1]-ot[i] :
@@ -126,9 +131,11 @@ function ntvxphpsmcll(ot,ov,pa;npb=1,basint=intCon,basInt=IntCon,J=100,conf=0.95
                     lwts[j] += log(basint(etms[k],pa=pa[1:npb])+ex) # Adding on the log of background intensity plus excitation effect.
                     ex += eta/beta # Updating epsilon to kth event time '+' for the next round
                     lwts[j] -= eta*(1 - exp(-(ot[i+1]-etms[k])/beta)) # I think this also contributes to the sum with epsilons.
+                    # lwts[j] -= ex*beta*cdf(Exponential(beta), k == 1 ? etms[k] - ot[i] : etms[k] - etms[k-1])
                 end
                 # lwts[j] -= dN[i]*log(lmd)-lmd*(etms[dN[i]]-ot[i]) 
-                lwts[j] -= sum(log.(2:dN[i])) - dN[i]*log(ot[i+1] - ot[i]) # Check whether indexing is correct on second term.
+                lwts[j] -= sum(log.(2:dN[i])) - dN[i]*log(dt[i]) # Check whether indexing is correct on second term.
+                # lwts[j] -= ex*beta*cdf(Exponential(beta), ot[i] - etms[dN[i]])
                 ex *= exp( -(ot[i+1]-etms[dN[i]])/beta) # Updating ex to window between n_i th event and next time window.
                 ptcls[j] = ex
                 if etms[dN[i]] > ot[i+1] 

@@ -1,4 +1,4 @@
-using Random, Distributions, HawkesProcesses, Plots, CSV
+using Random, Distributions, HawkesProcesses, Plots, CSV, DataFrames, BenchmarkTools
 # include("HawkesUtils.jl")
 include("..\\DisPaHawkes_original.jl")
 import .DisPaHawkes_original
@@ -16,9 +16,9 @@ ots, ovs = DisPaHawkes_original.ntvppdatapreproc(data[!, 1], data[!, 2]) # Clean
 
 param = [1, 0.5, 2] # True parameter
 pa_init = param .+ [0.5, -0.1, 0.5] # Initial guess
-N = 5000 # Number of iterations
+N = 10000 # Number of iterations
 
-# ll_est_orig = DisPaHawkes_original.ntvxphpsmcll(ots, ovs, pa_init)
+# @btime DisPaHawkes_original.ntvxphpsmcll(ots, ovs, param) # Runs in 51.3 ms
 
 
 @time begin
@@ -28,9 +28,9 @@ N = 5000 # Number of iterations
 
 end
 
-plot_orig = plot(1:N, [res[1][1:3:3*N-2] res[1][2:3:3*N-1] res[1][3:3:3*N]], label = ["Background" "Eta" "Lambda"], title = "Poisson Proposal", xlabel = "Time = 459.7 seconds")
+plot_orig = plot(1:N, [res[1][1:3:3*N-2] res[1][2:3:3*N-1] res[1][3:3:3*N]], label = ["Background" "Eta" "Lambda"], title = "Poisson Proposal")
 savefig(plot_orig, raw"C:\\Users\\jlamb\\OneDrive\\PhD\\Code Projects\\PF_Hawkes\\Uniform_vs_Original\\Figures\\plot_orig.pdf")
-
+# 829.463111
 # n = 100
 # ll_vec = Vector{Float64}(undef, n)
 
