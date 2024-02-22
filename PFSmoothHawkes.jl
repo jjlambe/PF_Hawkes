@@ -105,11 +105,8 @@ function ntvxphpsmcll(ot,ov,pa;npb=1,basint=intCon,basInt=IntCon,J=100,conf=0.95
         # println(exp.(lwts))
         # smp = sample(1:J, weights(exp.(lwts)), J)
         # ptcls = ptcls[smp]
-        # print("Test\n")
-        # print(ptcls, "\n")
-        # print(lwts, "\n")
-        # print(length(ptcls))
-        ptcls = SmoothCumDisUnif(ptcls, exp.(lwts), J)
+       
+        ptcls = SmoothCumDisUnif(ptcls, exp.(lwts), J) # Smooths the ECDF based on Malik & Pitt (2011) and redraws
         cumBk0 = cumBk1
         cumBk1 = basInt(ot[i+1],pa=pa[1:npb])
         if dN[i]==0 

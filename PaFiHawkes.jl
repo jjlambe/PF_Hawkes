@@ -65,8 +65,8 @@ function ntvxphpsmcll(ot,ov,pa;npb=1,basint=intCon,basInt=IntCon,J=100,conf=0.95
 
     ## In the first interval with 1 or more events:
     # lmd = quantile(Gamma(dN[idx],1.0),conf)/(ot[idx+1]-ot[idx])
-    # cumBk represents the cumulative value of the background intensity, with 0 and 1 used to denote the start and end of a time interval.
-    
+
+    # cumBk represents the cumulative value of the background intensity.
     cumBk0 = cumBk1
     cumBk1 = basInt(ot[idx+1],pa=pa[1:npb]) # Cumulative background at end of first interval with an observation.
     Threads.@threads for j in 1:J
@@ -74,6 +74,7 @@ function ntvxphpsmcll(ot,ov,pa;npb=1,basint=intCon,basInt=IntCon,J=100,conf=0.95
         # etms = ot[idx] .+  
         #     cumsum(rand(Exponential(1/lmd),dN[idx]))  # Simulating the poisson process starting at t(i-1).
         # etms = OrdUnifExpSamp(ot[idx:idx+1], dN[idx]) # Sampling from ordered uniform.
+        # Ordered Uniform sampling scheme
         Y = rand(Exponential(1), dN[idx] + 1)
         etms = ot[idx] .+ (cumsum(Y)[1:dN[idx]]*(ot[idx + 1] - ot[idx]))/sum(Y)
         # This loop calculates the log of the numerator of the weights.
@@ -101,7 +102,6 @@ function ntvxphpsmcll(ot,ov,pa;npb=1,basint=intCon,basInt=IntCon,J=100,conf=0.95
 
     ## For the idx+1st to the last interval
     for i in idx+1:n  # i=index of the interval = ot index - 1
-        # println(exp.(lwts))
         smp = sample(1:J, weights(exp.(lwts)), J)
         ptcls = ptcls[smp] 
         cumBk0 = cumBk1
@@ -131,13 +131,12 @@ function ntvxphpsmcll(ot,ov,pa;npb=1,basint=intCon,basInt=IntCon,J=100,conf=0.95
                     lwts[j] += log(basint(etms[k],pa=pa[1:npb])+ex) # Adding on the log of background intensity plus excitation effect.
                     ex += eta/beta # Updating epsilon to kth event time '+' for the next round
                     lwts[j] -= eta*(1 - exp(-(ot[i+1]-etms[k])/beta)) # I think this also contributes to the sum with epsilons.
-                    # lwts[j] -= ex*beta*cdf(Exponential(beta), k == 1 ? etms[k] - ot[i] : etms[k] - etms[k-1])
                 end
                 # lwts[j] -= dN[i]*log(lmd)-lmd*(etms[dN[i]]-ot[i]) 
                 lwts[j] -= sum(log.(2:dN[i])) - dN[i]*log(dt[i]) # Check whether indexing is correct on second term.
-                # lwts[j] -= ex*beta*cdf(Exponential(beta), ot[i] - etms[dN[i]])
-                ex *= exp( -(ot[i+1]-etms[dN[i]])/beta) # Updating ex to window between n_i th event and next time window.
+                ex *= exp(-(ot[i+1]-etms[dN[i]])/beta) # Updating ex to window between n_i th event and next time window.
                 ptcls[j] = ex
+
                 if etms[dN[i]] > ot[i+1] 
                     lwts[j] = -Inf 
                 end
