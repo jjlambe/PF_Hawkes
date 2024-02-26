@@ -15,16 +15,16 @@ param = [1, 0.5, 2] # True parameter
 pa_init = param .+ [0.5, -0.1, 0.5] # Initial guess
 N = 10000 # Number of iterations
 
-# @btime PaFiHawkes.ntvxphpsmcll(ots, ovs, param) # Runs in 50 ms
+@btime PaFiHawkes.ntvxphpsmcll(ots, ovs, param) # Used to run in 50 ms, now runs in 45 ms using the generation of particle values prior to looping over 1:J
 
-@time begin
-    res = PaFiHawkes.MHMCMCdiscExpHawkes((otms=ots, ovls=ovs), pa_init,
-                            verb = true, N = N,
-                            J = 128, delta = 0.1)
-end
+# @time begin
+#     res = PaFiHawkes.MHMCMCdiscExpHawkes((otms=ots, ovls=ovs), pa_init,
+#                             verb = true, N = N,
+#                             J = 128, delta = 0.1)
+# end
 
-plot_unif = plot(1:N, [res[1][1:3:3*N-2] res[1][2:3:3*N-1] res[1][3:3:3*N]], label = ["Background" "Eta" "Lambda"], title = "Ordered Uniform Proposal")
-savefig(plot_unif, raw"C:\\Users\\jlamb\\OneDrive\\PhD\\Code Projects\\PF_Hawkes\\Uniform_vs_Original\\Figures\\plot_unif.pdf")
+# plot_unif = plot(1:N, [res[1][1:3:3*N-2] res[1][2:3:3*N-1] res[1][3:3:3*N]], label = ["Background" "Eta" "Lambda"], title = "Ordered Uniform Proposal")
+# savefig(plot_unif, raw"C:\\Users\\jlamb\\OneDrive\\PhD\\Code Projects\\PF_Hawkes\\Uniform_vs_Original\\Figures\\plot_unif.pdf")
 # 819.55 seconds
 
 ####### Manual Likelihood Estimate Comparison ##########

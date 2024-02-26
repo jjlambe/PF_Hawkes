@@ -69,14 +69,16 @@ function ntvxphpsmcll(ot,ov,pa;npb=1,basint=intCon,basInt=IntCon,J=100,conf=0.95
     # cumBk represents the cumulative value of the background intensity.
     cumBk0 = cumBk1
     cumBk1 = basInt(ot[idx+1],pa=pa[1:npb]) # Cumulative background at end of first interval with an observation.
+    prop_vals = OrdUnifExpMultSamp(ot[idx:idx+1], dN[idx], J)
     Threads.@threads for j in 1:J
         lwts[j] = cumBk0 - cumBk1
         # etms = ot[idx] .+  
         #     cumsum(rand(Exponential(1/lmd),dN[idx]))  # Simulating the poisson process starting at t(i-1).
         # etms = OrdUnifExpSamp(ot[idx:idx+1], dN[idx]) # Sampling from ordered uniform.
         # Ordered Uniform sampling scheme
-        Y = rand(Exponential(1), dN[idx] + 1)
-        etms = ot[idx] .+ (cumsum(Y)[1:dN[idx]]*(ot[idx + 1] - ot[idx]))/sum(Y)
+        # Y = rand(Exponential(1), dN[idx] + 1)
+        # etms = ot[idx] .+ (cumsum(Y)[1:dN[idx]]*(ot[idx + 1] - ot[idx]))/sum(Y)
+        etms = prop_vals[:, j]
         # This loop calculates the log of the numerator of the weights.
         ex = ptcls[j] # ex is a placeholder for the values of the particles.
         
@@ -101,7 +103,9 @@ function ntvxphpsmcll(ot,ov,pa;npb=1,basint=intCon,basInt=IntCon,J=100,conf=0.95
     ll += lphat
 
     ## For the idx+1st to the last interval
+
     for i in idx+1:n  # i=index of the interval = ot index - 1
+        # print(i, "\n")
         smp = sample(1:J, weights(exp.(lwts)), J)
         ptcls = ptcls[smp] 
         cumBk0 = cumBk1
@@ -113,12 +117,15 @@ function ntvxphpsmcll(ot,ov,pa;npb=1,basint=intCon,basInt=IntCon,J=100,conf=0.95
             ptcls *= exp(-(ot[i+1] - ot[i])/beta)
         else
             # lmd = quantile(Gamma(dN[i],1.0),conf)/(ot[i+1]-ot[i])
+            # prop_vals = OrdUnifExpMultSamp(ot[i:i+1], dN[i], J)
             Threads.@threads for j in 1:J
                 # etms = ot[i] .+
                 #     cumsum(rand(Exponential(1/lmd),dN[i])) 
                 # etms = OrdUnifExpSamp(ot[i:i+1], dN[i]) # Sampling from ordered uniform.
                 Y = rand(Exponential(1), dN[i] + 1)
                 etms = ot[i] .+ (cumsum(Y)[1:dN[i]]*dt[i])/sum(Y) # Sampling from ordered uniform
+                # etms = prop_vals[:, j]
+
                 lwts[j] = -cumBk1 + cumBk0 # Accumulation of background intensity.
                 ex = ptcls[j] # Establishing value of epsilon for this particle.
                 lwts[j] -= ex*beta*cdf(Exponential(beta),
