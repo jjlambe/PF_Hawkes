@@ -180,8 +180,8 @@ function ntvhpsmcll(ot,ov,pa;np=(b=1,e=3),basint=intCon,basInt=IntCon,
     for i in idx:n  # i=index of the interval = ot index - 1
         lPr = fill(0.0,J)
         if i>idx 
-            smp = sample(1:J,weights(exp.(lwts)),J)
-            ptcls[1:N[i],:]=ptcls[1:N[i],smp] 
+            smp = sample(1:J, weights(exp.(lwts)),J)
+            ptcls[1:N[i],:] = ptcls[1:N[i],smp] 
         end
         if dN[i] == 0
             lwts = log.(fill(1.0/J,J))
@@ -232,7 +232,7 @@ function ntvhpsmcll(ot,ov,pa;np=(b=1,e=3),basint=intCon,basInt=IntCon,
                 end
                 if taus[N[i+1],j]>ot[i+1] lPr[j]= -Inf end  
             end
-             lphat = logsumexp(lPr .+ lwts)-log(J); 
+             lphat = logsumexp(lPr .+ lwts) - log(J); 
             ll += lphat
             lwts += lPr
         end

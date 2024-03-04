@@ -30,10 +30,16 @@ function OrdUnifExpMultSamp(t_int, n, J)
     return (t_int[2] - t_int[1])*Y .+ t_int[1]
 end
 
-# @btime vals = OrdUnifExpMultSamp([10, 20], 30, 128)
+function SampType(n)
+    # n is the vector of numbers
+    indices = Int64.(ones(n[1]))
+    for i in eachindex(n)[2:end]
+        append!(indices, Int64.(i*ones(n[i])))
+    end
+    return(shuffle(indices))
+end
 
-# x = [OrdUnifExpMultSamp([10, 20], 2, 2) for i in 1:2]
-# print(x[1][:, 1])
+SampType([10, 5])
 
 # function OrdUnifProp(dt, dN, N, T)
 #     K = length(dt)
@@ -49,37 +55,3 @@ end
 #     return(ptcls)
 # end
 
-
-# print(OrdUnifProp([1, 2, 3], [1, 4, 3], 8, 6))
-
-# @btime OrdUnifExpSamp([10, 20], 1000)
-
-# On 1000 samples, drawing from the exponential is just over 3 times faster.
-
-# N = 100000
-# joint_vec = Vector{Float64}(undef, N)
-# @btime rand(JointOrderStatistics(Uniform(0, 100), N), 1)
-
-# @btime OrdUnifExpSamp([0, 100], N) # The uniform with exp draws is 3 times faster than rand() from JointOrderStatistics()
-
-# The OrdUnifExpSamp method is statistically identical to the inbuilt method.
-# res1 = rand(JointOrderStatistics(Uniform(0, 1), 10, [6]), N)
-# print(mean(res1), "\n")
-
-# res2 = [OrdUnifExpSamp([0, 1], 10)[6] for i in 1:N]
-# print(mean(res2), "\n")
-
-
-# samp = [OrdUnifExpSamp([0, 1], 10) for i in 1:N]
-# diff1 = [x[2] - x[1] for x in samp]
-# diff2 = [x[6] - x[5] for x in samp]
-# print(mean(diff1), "\n", mean(diff2))
-
-# res3 = Vector{Float64}(undef, N)
-# for i in 1:N
-#     res3[i] = samp[i][6]/samp[i][11]
-# end
-# print(mean(res3))
-# for i in 1:N
-#     res2[i] = samp[i]
-# end
